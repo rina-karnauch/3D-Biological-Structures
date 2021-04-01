@@ -75,7 +75,7 @@ def get_structures(pdb_id1, pdb_id2):
     :return: structure object of 1 and 2
     """
     # parsing object
-    parser = PDBParser(PERMISSIVE=1)
+    parser = PDBParser(PERMISSIVE=1, QUIET=True)
     # given structures
     structure_1 = parser.get_structure("pdb1", "pdb" + pdb_id1 + ".ent")[0]
     structure_2 = parser.get_structure("pdb2", "pdb" + pdb_id2 + ".ent")[0]
