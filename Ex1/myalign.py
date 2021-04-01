@@ -79,6 +79,12 @@ def get_structures(pdb_id1: str, pdb_id2: str):
 
 
 def get_CAs(structure, chain):
+    """
+    method to get CA chains of current given structure
+    :param structure: pdb structure
+    :param chain: the chain we want to read the CA's from
+    :return: array of CAs in structure
+    """
     # CA atoms list of structure
     CA_in_struct = []
     # go through structure chains
