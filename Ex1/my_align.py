@@ -33,13 +33,15 @@ def alignment_method():
     alignment_object.set_atoms(CA_in_1, CA_in_2)
     alignment_object.apply(structure_2.get_atoms())
     # RMSD of first alignment
-    print('{:.20f}'.format(alignment_object.rms))
+    print("RMSD of " + pdb_id1 + " on top of " + pdb_id2 + ": "
+          + '{:.20f}'.format(alignment_object.rms))
 
     # align structure_2 on top of structure_1
     alignment_object.set_atoms(CA_in_2, CA_in_1)
     alignment_object.apply(structure_1.get_atoms())
     # RMSD of second alignment
-    print('{:.20f}'.format(alignment_object.rms))
+    print("RMSD of " + pdb_id2 + " on top of " + pdb_id1 + ": "
+          + '{:.20f}'.format(alignment_object.rms))
 
     mmCIF_output = MMCIFIO()
 
