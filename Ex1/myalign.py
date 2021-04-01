@@ -52,7 +52,7 @@ def alignment_method():
     mmCIF_output.save(pdb_id2 + ".cif")
 
 
-def download_structures(code1: str, code2: str) -> None:
+def download_structures(code1, code2):
     """
     method to download structures from pdb sitr
     :param code1: structure 1 to download
@@ -67,7 +67,7 @@ def download_structures(code1: str, code2: str) -> None:
                                  overwrite=True)
 
 
-def get_structures(pdb_id1: str, pdb_id2: str):
+def get_structures(pdb_id1, pdb_id2):
     """
     method to get structures of pdb files which we downloaded
     :param pdb_id1: code of structure1
