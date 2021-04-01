@@ -19,7 +19,9 @@ def alignment_method():
 
     # download and get structure methods
     download_structures(pdb_id1, pdb_id2)
-    structure_1, structure_2 = get_structures(pdb_id1, pdb_id1)
+
+    # get structures themselves
+    structure_1, structure_2 = get_structures(pdb_id1, pdb_id2)
 
     # CA chains arrays
     CA_in_1 = get_CAs(structure_1, chain1)
@@ -31,13 +33,13 @@ def alignment_method():
     alignment_object.set_atoms(CA_in_1, CA_in_2)
     alignment_object.apply(structure_2.get_atoms())
     # RMSD of first alignment
-    print(alignment_object.rms)
+    print('{:.20f}'.format(alignment_object.rms))
 
     # align structure_2 on top of structure_1
     alignment_object.set_atoms(CA_in_2, CA_in_1)
     alignment_object.apply(structure_1.get_atoms())
     # RMSD of second alignment
-    print(alignment_object.rms)
+    print('{:.20f}'.format(alignment_object.rms))
 
     mmCIF_output = MMCIFIO()
 
@@ -59,8 +61,10 @@ def download_structures(code1: str, code2: str) -> None:
     """
     # download object to download from pdb net and saving in current folder
     downloader = PDBList()
-    downloader.retrieve_pdb_file(code1, file_format="bundle", pdir="./")
-    downloader.retrieve_pdb_file(code2, file_format="bundle", pdir="./")
+    downloader.retrieve_pdb_file(code1, file_format="pdb", pdir="./",
+                                 overwrite=True)
+    downloader.retrieve_pdb_file(code2, file_format="pdb", pdir="./",
+                                 overwrite=True)
 
 
 def get_structures(pdb_id1: str, pdb_id2: str):
