@@ -22,23 +22,24 @@ def alignment_method():
 
     # get structures themselves
     structure_1, structure_2 = get_structures(pdb_id1, pdb_id2)
+    model_1, model_2 = structure_1[0], structure_2[0]
 
     # CA chains arrays
-    CA_in_1 = get_CAs(structure_1, chain1)
-    CA_in_2 = get_CAs(structure_2, chain2)
+    CA_in_1 = get_CAs(model_1, chain1)
+    CA_in_2 = get_CAs(model_2, chain2)
 
     alignment_object = Bio.PDB.Superimposer()
 
     # align structure_1 on top of structure_2
     alignment_object.set_atoms(CA_in_1, CA_in_2)
-    alignment_object.apply(structure_2.get_atoms())
+    alignment_object.apply(model_2.get_atoms())
     # RMSD of first alignment
     print("RMSD of " + pdb_id1 + " on top of " + pdb_id2 + ": "
           + '{:.20f}'.format(alignment_object.rms))
 
     # align structure_2 on top of structure_1
     alignment_object.set_atoms(CA_in_2, CA_in_1)
-    alignment_object.apply(structure_1.get_atoms())
+    alignment_object.apply(model_1.get_atoms())
     # RMSD of second alignment
     print("RMSD of " + pdb_id2 + " on top of " + pdb_id1 + ": "
           + '{:.20f}'.format(alignment_object.rms))
@@ -79,8 +80,8 @@ def get_structures(pdb_id1, pdb_id2):
     # parsing object
     parser = PDBParser(PERMISSIVE=1, QUIET=True)
     # given structures
-    structure_1 = parser.get_structure("pdb1", "pdb" + pdb_id1 + ".ent")[0]
-    structure_2 = parser.get_structure("pdb2", "pdb" + pdb_id2 + ".ent")[0]
+    structure_1 = parser.get_structure("pdb1", "pdb" + pdb_id1 + ".ent")
+    structure_2 = parser.get_structure("pdb2", "pdb" + pdb_id2 + ".ent")
     return structure_1, structure_2
 
 
