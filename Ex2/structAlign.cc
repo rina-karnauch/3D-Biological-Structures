@@ -24,39 +24,34 @@
 using namespace std;
 
 
-void makeCombinationsHelper(vector<vector<Atom>> &answer, vector<Atom> &temp,
-							int n, int left, int k, Molecule<Atom> molecule)
-{
-	if (k == 0)
-	{
-		answer.push_back(temp);
-		return;
-	}
-
-	for (int i = left; i <= n; ++i)
-	{
-		temp.push_back(molecule[i]);
-		makeCombinationsHelper(answer, temp, n, i + 1, k - 1, molecule);
-
-		temp.pop_back();
-	}
-}
-
 vector<Triangle> makeCombinations(const Molecule<Atom> &molecule)
 {
-
-	vector<vector<Atom>> answer;
-	vector<Atom> temp;
-	makeCombinationsHelper(answer, temp, molecule.size(), 1, 3, molecule);
-
 	vector<Triangle> triangles;
-
-	for (int i = 0; i < answer.size(); i++)
+	for (int i = 0; i < molecule.size() - 3; i++)
 	{
-		Triangle currentTriangle = Triangle(answer[i][0], answer[i][1], answer[i][2]);
-		triangles.push_back(currentTriangle);
+		Atom x = molecule[i];
+		Atom y = molecule[i + 1];
+		Atom z = molecule[i + 2];
+		Triangle t = Triangle(x, y, z);
+		triangles.push_back(t);
 	}
 	return triangles;
+}
+
+Matrix3 getTransformation(){
+
+}
+
+vector<Matrix3> getAllTransformations(vector<Triangle> mulModel, vector<Triangle> mulTarget)
+{
+	vector<Matrix3> transformations;
+	for (int i = 0; i < mulModel.size(); i++)
+	{
+		for (int j = 0; j < mulTarget.size(); j++)
+		{
+
+		}
+	}
 
 }
 
@@ -114,11 +109,6 @@ int main(int argc, char *argv[])
 		modelTargetSize = molTarget.readPDBfile(fileTarget, PDB::PSelector());
 	}
 
-	// now molecules are both from the same genre
-
-	vector<Triangle> modelTriangles = makeCombinations(molModel);
-	vector<Triangle> targetTriangles = makeCombinations(molTarget);
-
 	// calculate center of mass
 	Vector3 vectModelMass(0, 0, 0);
 	for (unsigned int i = 0; i < molModel.size(); i++)
@@ -148,9 +138,17 @@ int main(int argc, char *argv[])
 					 i); // coordinate is the key to the hash, we store atom index
 	}
 
+	// now molecules are both from the same genre
+
+	vector<Triangle> modelTriangles = makeCombinations(molModel);
+	vector<Triangle> targetTriangles = makeCombinations(molTarget);
+
+	vector<Matrix3> transformations;
+
 	// now we try random rotations and choose the best alignment from random rotations
 	unsigned int iMaxSize = 0;
 	RigidTrans3 rtransBest;
+
 	for (int iRand = 0; iRand < m_iRotations; iRand++)
 	{
 		// random rotation matrix
