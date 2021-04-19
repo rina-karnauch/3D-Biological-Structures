@@ -38,20 +38,23 @@ vector<Triangle> makeCombinations(const Molecule<Atom> &molecule)
 	return triangles;
 }
 
-Matrix3 getTransformation(){
-
+RigidTrans3 getTransformation(Triangle model, Triangle target)
+{
+	return model | target;
 }
 
-vector<Matrix3> getAllTransformations(vector<Triangle> mulModel, vector<Triangle> mulTarget)
+vector<RigidTrans3>
+getAllTransformations(vector<Triangle> mulModel, vector<Triangle> mulTarget)
 {
-	vector<Matrix3> transformations;
+	vector<RigidTrans3> transformations;
 	for (int i = 0; i < mulModel.size(); i++)
 	{
 		for (int j = 0; j < mulTarget.size(); j++)
 		{
-
+			transformations.push_back(getTransformation(mulModel[i], mulTarget[j]));
 		}
 	}
+	return transformations;
 
 }
 
@@ -60,18 +63,16 @@ int main(int argc, char *argv[])
 	// measure the run time
 	auto start = std::chrono::system_clock::now();
 
-	if (argc != 5)
+	if (argc != 4)
 	{
-		std::cerr << "Usage: " << argv[0] << " target.pdb model.pdb num_rotations dist_threshold"
+		std::cerr << "Usage: " << argv[0] << " target.pdb model.pdb dist_threshold"
 				  << std::endl;
 		exit(1);
 	}
 
-	//********Parameters********************
-	int m_iRotations = atoi(argv[3]); // number of random rotations to try
-	float m_fDistThr = atof(argv[4]); // distance threshold on atoms in correspondence
+	// ********************Parameters********************
+	float m_fDistThr = atof(argv[3]); // distance threshold on atoms in correspondence
 
-	std::cout << "Number of rotations: " << m_iRotations << std::endl;
 	std::cout << "Distance threshold: " << m_fDistThr << std::endl;
 
 	// read the two files into Molecule
@@ -91,22 +92,28 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-
+	molModel.readPDBfile(fileModel, PDB::CAlphaSelector());
 	int modelProteinSize = molModel.readPDBfile(fileModel, PDB::CAlphaSelector());
 	int modelTargetSize = molTarget.readPDBfile(fileTarget, PDB::CAlphaSelector());
 
 	// one is RNA and second is Protein or otherwise
-	if ((modelProteinSize == 0 && modelTargetSize != 0) ||
-		(modelProteinSize != 0 && modelTargetSize == 0))
+	if (((modelProteinSize == 0) && (modelTargetSize > 0)) ||
+		((modelProteinSize) > 0 && (modelTargetSize == 0)))
 	{
 		std::cout << "Alignment Not Possible between Protein and RNA" << std::endl;
 		return 0;
 	}
 	// if no CA's found then its a RNA mol
-	if ((modelProteinSize == 0) && (modelTargetSize == 0))
+	else if ((modelProteinSize == 0) && (modelTargetSize == 0))
 	{
 		modelProteinSize = molModel.readPDBfile(fileModel, PDB::PSelector());
 		modelTargetSize = molTarget.readPDBfile(fileTarget, PDB::PSelector());
+	}
+
+	if ((modelProteinSize == 0) && (modelTargetSize == 0))
+	{
+		std::cout << "No Molecules Found." << std::endl;
+		return 0;
 	}
 
 	// calculate center of mass
@@ -139,33 +146,30 @@ int main(int argc, char *argv[])
 	}
 
 	// now molecules are both from the same genre
-
 	vector<Triangle> modelTriangles = makeCombinations(molModel);
 	vector<Triangle> targetTriangles = makeCombinations(molTarget);
 
-	vector<Matrix3> transformations;
+	vector<RigidTrans3> transformations = getAllTransformations(modelTriangles, targetTriangles);
 
 	// now we try random rotations and choose the best alignment from random rotations
 	unsigned int iMaxSize = 0;
-	RigidTrans3 rtransBest;
+	RigidTrans3 rtransBest = transformations[0];
 
-	for (int iRand = 0; iRand < m_iRotations; iRand++)
+	for (int it = 0; it < transformations.size(); it++)
 	{
-		// random rotation matrix
-		Matrix3 rotation((drand48() - 0.5) * 2 * 3.1415,
-						 (drand48() - 0.5) * 2 * 3.1415,
-						 (drand48() - 0.5) * 2 * 3.1415);
 
 		// match is a class that stores the correspondence list, eg.
 		// pairs of atoms, one from each molecule, that are matching
 		Match match;
+		RigidTrans3 trans = transformations[it];
+		Matrix3 transformation_matrix = trans.rotation();
 
 		// apply rotation on each atom in the model molecule and
 		// add the pairs of atoms (one from target and one from model)
 		// that are close enough to the match list
 		for (unsigned int i = 0; i < molModel.size(); i++)
 		{
-			Vector3 mol_atom = rotation * molModel[i].position(); // rotate
+			Vector3 mol_atom = transformation_matrix * molModel[i].position(); // rotate
 
 			// find close target molecule atoms using the hash
 			HashResult<int> result;
@@ -186,11 +190,11 @@ int main(int argc, char *argv[])
 		}
 
 		//calculates transformation that is a little better than "rotation"
-		match.calculateBestFit(molTarget, molModel);
+//		match.calculateBestFit(molTarget, molModel);
 
 		if (iMaxSize < match.size())
 		{
-			iMaxSize = match.size();
+			iMaxSize = (int) match.size();
 			rtransBest = match.rigidTrans();
 		}
 	}
@@ -199,7 +203,8 @@ int main(int argc, char *argv[])
 	std::cout << "Rigid Trans: " <<
 			  RigidTrans3(Vector3(0, 0, 0), vectTargetMass) *
 			  rtransBest *
-			  RigidTrans3(Vector3(0, 0, 0), (-vectModelMass)) << std::endl;
+			  RigidTrans3(Vector3(0, 0, 0), (-vectModelMass))
+			  << std::endl;
 
 	auto end = std::chrono::system_clock::now();
 
