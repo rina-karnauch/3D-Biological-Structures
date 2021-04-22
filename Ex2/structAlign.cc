@@ -29,6 +29,7 @@ vector<Triangle> makeCombinations(const Molecule<Atom> &molecule)
 	vector<Triangle> triangles;
 	for (int i = 0; i < molecule.size() - 3; i++)
 	{
+
 		Atom x = molecule[i];
 		Atom y = molecule[i + 1];
 		Atom z = molecule[i + 2];
@@ -40,11 +41,12 @@ vector<Triangle> makeCombinations(const Molecule<Atom> &molecule)
 
 RigidTrans3 getTransformation(Triangle model, Triangle target)
 {
-	return model | target;
+	return target | model;
 }
 
 vector<RigidTrans3>
-getAllTransformations(vector<Triangle> mulModel, vector<Triangle> mulTarget)
+getAllTransformations(vector<Triangle> mulModel,
+					  vector<Triangle> mulTarget)
 {
 	vector<RigidTrans3> transformations;
 	for (int i = 0; i < mulModel.size(); i++)
@@ -76,9 +78,10 @@ int main(int argc, char *argv[])
 	std::cout << "Distance threshold: " << m_fDistThr << std::endl;
 
 	// read the two files into Molecule
-	Molecule<Atom> molModel, molTarget;
+	Molecule<Atom> molModel, molTarget, molModelFull;
 
 	std::ifstream fileModel(argv[2]);
+	std::ifstream fileModelFull(argv[2]);
 	std::ifstream fileTarget(argv[1]);
 
 	if (!fileModel)
@@ -92,9 +95,14 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-	molModel.readPDBfile(fileModel, PDB::CAlphaSelector());
+//
 	int modelProteinSize = molModel.readPDBfile(fileModel, PDB::CAlphaSelector());
 	int modelTargetSize = molTarget.readPDBfile(fileTarget, PDB::CAlphaSelector());
+	molModelFull.readPDBfile(fileModelFull, PDB::AllSelector());
+
+
+//	int modelProteinSize = molModel.readPDBfile(fileModel, PDB::AllSelector());
+//	int modelTargetSize = molTarget.readPDBfile(fileTarget, PDB::AllSelector());
 
 	// one is RNA and second is Protein or otherwise
 	if (((modelProteinSize == 0) && (modelTargetSize > 0)) ||
@@ -103,7 +111,7 @@ int main(int argc, char *argv[])
 		std::cout << "Alignment Not Possible between Protein and RNA" << std::endl;
 		return 0;
 	}
-	// if no CA's found then its a RNA mol
+		// if no CA's found then its a RNA mol
 	else if ((modelProteinSize == 0) && (modelTargetSize == 0))
 	{
 		modelProteinSize = molModel.readPDBfile(fileModel, PDB::PSelector());
@@ -118,6 +126,7 @@ int main(int argc, char *argv[])
 
 	// calculate center of mass
 	Vector3 vectModelMass(0, 0, 0);
+	Vector3 vectModelMassFull(0, 0, 0);
 	for (unsigned int i = 0; i < molModel.size(); i++)
 	{
 		vectModelMass += molModel[i].position();
@@ -125,6 +134,7 @@ int main(int argc, char *argv[])
 	vectModelMass /= molModel.size();
 
 	Vector3 vectTargetMass(0, 0, 0);
+	Vector3 vectTargetMassFull(0, 0, 0);
 	for (unsigned int i = 0; i < molTarget.size(); i++)
 	{
 		vectTargetMass += molTarget[i].position();
@@ -151,17 +161,18 @@ int main(int argc, char *argv[])
 
 	vector<RigidTrans3> transformations = getAllTransformations(modelTriangles, targetTriangles);
 
-	// now we try random rotations and choose the best alignment from random rotations
+	// now we try rotations and choose the best alignment from random rotations
 	unsigned int iMaxSize = 0;
 	RigidTrans3 rtransBest = transformations[0];
+	float RMSD = 0.0;
 
 	for (int it = 0; it < transformations.size(); it++)
 	{
 
 		// match is a class that stores the correspondence list, eg.
 		// pairs of atoms, one from each molecule, that are matching
-		Match match;
 		RigidTrans3 trans = transformations[it];
+		Match match = Match(trans);
 		Matrix3 transformation_matrix = trans.rotation();
 
 		// apply rotation on each atom in the model molecule and
@@ -189,28 +200,30 @@ int main(int argc, char *argv[])
 			result.clear();
 		}
 
-		//calculates transformation that is a little better than "rotation"
-//		match.calculateBestFit(molTarget, molModel);
+		match.calculateBestFit(molTarget, molModel);
 
 		if (iMaxSize < match.size())
 		{
-			iMaxSize = (int) match.size();
+			iMaxSize = match.size();
 			rtransBest = match.rigidTrans();
+			RMSD = match.rmsd();
 		}
 	}
 
 	std::cout << "Max Alignment Size: " << iMaxSize << std::endl;
-	std::cout << "Rigid Trans: " <<
-			  RigidTrans3(Vector3(0, 0, 0), vectTargetMass) *
-			  rtransBest *
-			  RigidTrans3(Vector3(0, 0, 0), (-vectModelMass))
-			  << std::endl;
+	std::cout << "Achieved RMSD is:" << RMSD << std::endl;
+	std::cout << "Rigid Trans: " << rtransBest << std::endl;
 
 	auto end = std::chrono::system_clock::now();
 
 	std::chrono::duration<double> elapsed_seconds = end - start;
 	std::cout << "elapsed time: " << elapsed_seconds.count() << "s" << std::endl;
 
+
+	molModelFull *=rtransBest;
+
+	std::ofstream ofstream("transformed.pdb", std::ofstream::out);
+	ofstream << molModelFull;
 }
 
 
