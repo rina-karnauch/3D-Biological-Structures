@@ -1,0 +1,3 @@
+/Users/rina.karnauch/Desktop/pdfs/3D/Ex2/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/Users/rina.karnauch/Desktop/pdfs/3D/Ex2/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/rina.karnauch/Desktop/pdfs/3D/Ex2/cmake-build-debug/CMakeFiles/Ex2.dir
