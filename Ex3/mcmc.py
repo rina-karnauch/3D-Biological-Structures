@@ -3,7 +3,11 @@
 
 # libraries
 import argparse
+from typing import Union
+
 import numpy as np
+import seaborn as sbn
+import matplotlib.pyplot as plt
 
 
 # helpers by staff
@@ -166,6 +170,58 @@ def run_MCMC(n: int, m: int, kT: float):
     return visitor_grid
 
 
+def kT_heat_map(vg, kT, text):
+    plt.figure()
+
+    log_vg = kT * (np.max(np.log1p(vg)) - np.log1p(vg))
+    sbn.heatmap(log_vg, annot=True, fmt=".2f",
+                linewidths=.5)
+    plt.xlabel("index of row")
+    plt.ylabel("index of column")
+    if text:
+        plt.title("frequencies of coordinate visiting of m=500,000, "
+                  "with kT " + str(kT) + ", " + text)
+    else:
+        plt.title("frequencies of coordinate visiting of m=500,000, "
+                  "with log scale")
+    plt.show()
+
+
+def log_heat_map(vg, text):
+    plt.figure()
+
+    log_vg = np.max(np.log1p(vg)) - np.log1p(vg)
+    sbn.heatmap(log_vg, annot=True, fmt=".2f",
+                linewidths=.5)
+    plt.xlabel("index of row")
+    plt.ylabel("index of column")
+    if text:
+        plt.title("frequencies of coordinate visiting of m=500,000, "
+                  "with log. " + text)
+    else:
+        plt.title("frequencies of coordinate visiting of m=500,000, "
+                  "with log scale")
+    plt.show()
+
+
+def design_heat_map(vg, m):
+    """
+    design heat map by iteration and visitor grid
+    :param vg: visitor grid
+    :param m: number of iteration
+    :return: none
+    """
+    hp_divided = vg / m
+
+    plt.figure()
+
+    sbn.heatmap(hp_divided, annot=True, fmt=".2f", linewidths=.5)
+    plt.xlabel("index of row")
+    plt.ylabel("index of column")
+    plt.title("frequencies of coordinate visiting of m:" + str(m))
+    plt.show()
+
+
 def part_1_algorithm():
     """
     part 1 algorithm of ex3
@@ -175,8 +231,18 @@ def part_1_algorithm():
     args = parser.parse_known_args()[0]
     n, m, kT = args.n, args.m, args.kT
     configurations = generate_random_configuration_space(n)
-    visitor_grid = run_MCMC(n, m, kT)
-    print(visitor_grid)
+    # q2-5
+    for m in [10, 100, 500000]:
+        visitor_grid = run_MCMC(n, m, kT)
+        design_heat_map(visitor_grid, m)
+        if m == 500000:
+            log_heat_map(visitor_grid, None)
+    # q7-10
+    m = 500000
+    for kT in [0.1, 1.0, 2.0, 50.0]:
+        visitor_grid = run_MCMC(n, m, kT)
+        log_heat_map(visitor_grid, "kT: " + str(kT) + ".")
+        kT_heat_map(visitor_grid, kT, "\n(multiplied by)")
 
 
 if __name__ == '__main__':
