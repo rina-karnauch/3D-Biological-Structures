@@ -3,7 +3,6 @@
 
 # libraries
 import argparse
-from typing import Union
 
 import numpy as np
 import seaborn as sbn
