@@ -2,8 +2,9 @@
 
 
 # libraries
+import math
 import argparse
-
+from scipy.stats import bernoulli
 import numpy as np
 import seaborn as sbn
 import matplotlib.pyplot as plt
@@ -46,7 +47,7 @@ def get_p_accept_metropolis(dE, kT, p_forward, p_backward):
     configuration p_backward - probability to propose a move from proposed to
     current configuration """
 
-    p = np.exp(-dE / kT) * p_backward / p_forward
+    p = (p_backward / p_forward) * (math.exp((-1 * dE) / kT))
     return min(p, 1.0)
 
 
@@ -104,44 +105,58 @@ def randomize_start(visitor_grid, n: int):
     return start_row, start_col
 
 
-def get_probability_from_neigs_length(c: tuple, n: int):
+def get_probability_from_neigs_length(cords: tuple, n: int):
     """
     get probability from picking a neighbour of the coordinate c
     uniform probability over the amount of neighbours
-    :param c: coordinate
+    :param cords: coordinates
     :param n: # of rows/cols of matrix
     :return: uniform probability to pic a neighbouring coordinate
     """
-    return 1 / len(get_neighbours(c, n))
+    return 1 / len(get_neighbours(cords, n))
 
 
-def calculate_change_in_energy(current: tuple, propositional: tuple):
+def calculate_change_in_energy(current: tuple, propositional: tuple,
+                               energy_grid):
     """
     calculate change of energy from current configuration to propositional
+    :param energy_grid: energy grid
     :param current: current coordinate
     :param propositional: propositional coordinate
     :return: difference of energy form cor to prop
     """
-    current_energy = E(current)
-    propositional_energy = E(propositional)
-    return current_energy - propositional_energy
+    return energy_grid[propositional] - energy_grid[current]
 
 
-def accept_or_reject(c: tuple, p: tuple, metropolis_p: float, visitor_grid):
+def accept_or_reject(curr: tuple, prop: tuple, metropolis_p: float,
+                     visitor_grid):
     """
     randomizing a pick by metropolis probability weather to make a step to p
     or not.
-    :param c: current cord to move from
-    :param p: current cord to move to
+    :param curr: current cord to move from
+    :param prop: current cord to move to
     :param metropolis_p: probability of metropolis calculated before
     :param visitor_grid: visitor grid to mark
     :return: none
     """
-    decision = np.random.binomial(n=1, p=metropolis_p, size=1)[0]
+    # decision = np.random.binomial(n=1, p=metropolis_p, size=1)[0]
+    decision = bernoulli.rvs(metropolis_p)
     if decision:
         # accept
-        c = p
-    visitor_grid[c[0]][c[1]] += 1
+        curr = prop
+    visitor_grid[curr[0]][curr[1]] += 1
+
+
+def create_energy_grid(n: int):
+    """
+    method to create an energy grid for the n*n grid
+    :param n: amount of rows, cols
+    """
+    grid = np.zeros((n, n), dtype=float)
+    for i in range(n):
+        for j in range(n):
+            grid[i, j] = E((i, j))
+    return grid
 
 
 def run_MCMC(n: int, m: int, kT: float):
@@ -153,19 +168,23 @@ def run_MCMC(n: int, m: int, kT: float):
     :return: vistior grid
     """
     visitor_grid = np.zeros(shape=(n, n), dtype=int)
+    energy_grid = create_energy_grid(n)
     current_row, current_col = randomize_start(visitor_grid, n)
     # visited first pick
     for iteration in range(m - 1):
         neigs = get_neighbours((current_row, current_col), n)
-        random_proposition = neigs[np.random.randint(0, len(neigs))]
+        random_proposition = neigs[np.random.randint(0, high=len(neigs))]
         proposition_row, proposition_col = random_proposition[0], \
                                            random_proposition[1]
         c, p = (current_row, current_col), (proposition_row, proposition_col)
         p_forward = get_probability_from_neigs_length(c, n)
         p_backward = get_probability_from_neigs_length(p, n)
-        dE = calculate_change_in_energy(c, p)
+        dE = calculate_change_in_energy(c, p, energy_grid)
         metropolis_p = get_p_accept_metropolis(dE, kT, p_forward, p_backward)
-        accept_or_reject(c, p, metropolis_p, visitor_grid)
+        if bernoulli.rvs(metropolis_p):
+            current_row = proposition_row
+            current_col = proposition_col
+            visitor_grid[current_row, current_col] += 1
     return visitor_grid
 
 
